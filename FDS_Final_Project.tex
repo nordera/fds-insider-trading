@@ -1,18 +1,50 @@
-\documentclass[11pt]{article}
-\usepackage[margin=0.85in]{geometry}
-\usepackage{booktabs}
-\usepackage{amsmath}
-\usepackage{hyperref}
+\documentclass{article}
+
 \usepackage{graphicx}
-\usepackage{setspace}
-\usepackage{array}
-\usepackage{caption}
-\onehalfspacing
+\usepackage{amsmath}
+\usepackage[top=0.8in, bottom=1in, left=0.8in, right=0.8in]{geometry}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinestyle{sqlstyle}{
+    language=SQL,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{gray},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false
+}
+
+\titlespacing*{\section}{0pt}{1em}{0.5em}
+\titlespacing*{\subsection}{0pt}{0.5em}{0.3em}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4em}
+
+\usepackage{float}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\fancyhf{}
+\fancyhead[C]{MIT Sloan School of Management --- 15.458 Financial Data Science and Computing}
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
 
 \title{\textbf{Decoding Insider Trading Signals}\\
-\large Routine vs.\ Opportunistic Trades, Machine Learning, and Return Predictability}
+\large \textbf{Routine vs.\ Opportunistic Trades, Machine Learning, and Return Predictability}}
 \author{Shabbir Houssenaly \and Camilo Sanchez Quinto \and Brandon Li \and Niccol\`o Nordera}
-\date{MIT Sloan School of Management --- 15.458 Financial Data Science and Computing, May 2026}
 
 \begin{document}
 \maketitle
@@ -236,9 +268,11 @@ The regression strategy generates no significant alpha ($p=0.54$). Both XGBoost 
 
 This paper studies the predictability of insider trades using a combination of linear panel regressions, gradient boosting, and reinforcement learning. Our main findings are: (i) opportunistic insider trades predict next-month returns of 0.43\%, concentrated entirely in high-volatility environments; (ii) XGBoost generates large out-of-sample alpha (32.61\% per year, FF5-adjusted) by capturing non-linear combinations of market and fundamental variables rather than the insider signal itself; (iii) a PPO reinforcement learning agent, which directly optimizes the Sharpe ratio with transaction cost penalties, generates the highest raw returns (58.75\% annualized) but at substantially higher volatility, reflecting the agent's tendency to take concentrated positions in high-conviction months.
 
-Several limitations should be noted. All returns are gross of transaction costs, which could materially reduce net performance. The RL test period (2020--2024) is short and includes unusual market conditions. The routine/opportunistic classification could be further refined using Rule 10b5-1 plan indicators available in recent Form 4 filings.
+Several limitations should be noted. All portfolio returns are reported gross of transaction costs, which could materially reduce net performance, especially for the machine-learning long-short strategies that require frequent rebalancing and short positions. Future versions should therefore incorporate explicit transaction-cost assumptions, turnover statistics, liquidity filters, and potentially value-weighted portfolio construction to evaluate whether the estimated alphas remain implementable after realistic trading frictions. The RL test period is also short, covering only 2020--2024, and includes unusual market conditions such as the COVID recovery and the 2022 bear market. For this reason, we interpret the PPO results as an exploratory extension rather than the central empirical result of the paper.
 
-Future work could extend the RL framework to higher-frequency data, incorporate macroeconomic state variables as additional inputs, and apply a Fama-French decomposition to the RL returns over a longer sample to assess whether its alpha survives factor adjustment.
+A second limitation is that our routine/opportunistic classification is a behavioral proxy for discretionary trading rather than a direct classification of Rule 10b5-1 plans. Although our proposal anticipated using plan-level indicators from Form 4 disclosures, these fields are only consistently available in recent filings and are difficult to apply uniformly over the full 2010--2025 sample. We therefore rely on the Cohen, Malloy, and Pomorski (2012) timing-based classification as our main empirical proxy for routine versus opportunistic trading. Future work could exploit post-2023 Form 4 plan indicators and footnote text to separately identify trades executed under pre-scheduled plans and test whether those trades have weaker return predictability than non-plan trades.
+
+Finally, the project constructs a richer set of variables than those emphasized in the main regression tables. In the data pipeline, we construct firm size using CRSP market equity, trade-size measures such as net signed trade value and gross purchase/sale value, insider-role indicators such as officer and director status, ownership-scaled trade size, and coordination measures based on the number of insiders trading in the same firm-month. However, the main reported specifications focus on the cleaner routine/opportunistic directional signals and standard controls. Future work should more explicitly test the incremental value of these additional insider features, including ablation exercises comparing controls-only, insider-only, and full-feature machine-learning models. This would clarify whether the strong XGBoost performance reflects information contained in insider trading itself or broader nonlinear patterns in market and fundamental characteristics.
 
 %------------------------------------------------------------------
 \appendix
