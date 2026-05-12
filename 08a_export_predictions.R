@@ -11,7 +11,7 @@ cat("Columns:", paste(names(predictions), collapse=", "), "\n")
 # Keep only columns needed for RL
 predictions_export <- predictions %>%
   select(permno, yearmon, ret_lead, target,
-         signal_opportunistic, signal_routine, xgb_prob) %>%
+         signal_opportunistic, xgb_prob) %>%
   arrange(yearmon, permno)
 
 write.csv(predictions_export,
