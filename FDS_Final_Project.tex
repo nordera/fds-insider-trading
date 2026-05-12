@@ -175,16 +175,37 @@ Within R$^2$       & 0.0041    & 0.0039    & 0.0042    \\
 
 \subsection{XGBoost with Expanding Window}
 
-We train a gradient boosting classifier (XGBoost, \texttt{binary:logistic}) on an expanding window: for each test year $t \in \{2015,\ldots,2024\}$, the model trains on 2010--$(t{-}1)$ and predicts out-of-sample for year $t$, strictly preventing lookahead bias. Features include 19 variables spanning insider signals, market variables, and accounting fundamentals. Early stopping (30 rounds, 10\% validation holdout) prevents overfitting, yielding \textbf{735,365 out-of-sample predictions}.
+We train a gradient boosting classifier (XGBoost, \texttt{binary:logistic}) to predict whether firm $i$ earns a
+positive return in month $t+1$:
+\[
+    y_{i,t+1} = \mathbf{1}\{R_{i,t+1} > 0\}.
+\]
+The model outputs a predicted probability $\hat{p}_{i,t}$ for each firm-month. We estimate the model using an
+expanding-window design: for each test year $t \in \{2015,\ldots,2024\}$, the model is trained only on data from
+2010 through $t-1$ and then used to generate out-of-sample predictions for year $t$. This prevents the model from
+training on future observations. Features include 19 variables spanning insider signals, trade counts and volumes,
+market variables, and accounting fundamentals. Early stopping with 30 rounds and a 10\% validation holdout is
+used to limit overfitting, yielding 735,365 out-of-sample firm-month predictions.
 
-Figure \ref{fig:importance} shows that stock price (33.1\%) and volatility (25.0\%) dominate predictive gain, with all insider features contributing below 2\% total. XGBoost outperforms the linear signal by capturing non-linear interactions among known return predictors rather than by better extracting insider information --- a finding consistent with Gu, Kelly, and Xiu (2020).
+We then convert these predicted probabilities into trading signals. In each month, firms are sorted by
+$\hat{p}_{i,t}$. The main XGBoost portfolio goes long firms in the top decile of predicted probability and short
+firms in the bottom decile. We also construct a broader version that goes long the top 20\% and short the bottom
+20\%. Returns are equal-weighted within each leg and held for one month:
+\[
+    R^{LS}_{t+1}
+    =
+    \frac{1}{N^L_t}\sum_{i \in L_t} R_{i,t+1}
+    -
+    \frac{1}{N^S_t}\sum_{i \in S_t} R_{i,t+1}.
+\]
+Thus, the XGBoost model is not directly forecasting return magnitudes; it ranks firms by the predicted probability
+of a positive next-month return, and portfolio performance evaluates whether this ranking has economic value.
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.76\textwidth]{fig_importance.pdf}
-\caption{XGBoost feature importance (Gain), model trained on 2010--2023. Purple = market variables, green = fundamentals, coral = insider signals.}
-\label{fig:importance}
-\end{figure}
+Figure 1 shows that stock price (33.1\%) and volatility (25.0\%) dominate predictive gain, with all insider features
+contributing below 2\% total. XGBoost therefore appears to outperform the linear insider-signal benchmark mainly
+by capturing nonlinear interactions among market and fundamental predictors, rather than by extracting substantially
+more information from insider trading alone, consistent with Gu, Kelly, and Xiu (2020).   
+
 
 \subsection{Reinforcement Learning Portfolio Optimization}
 
