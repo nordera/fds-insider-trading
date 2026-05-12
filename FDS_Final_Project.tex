@@ -68,9 +68,43 @@ We extend this framework in four directions. First, we apply the routine criteri
 
 We combine SEC Form 4 insider transactions (WRDS), monthly CRSP stock returns, and quarterly Compustat fundamentals into a firm-month panel. Starting from 1,742,812 transactions (2010--2025), we retain Form 4 open-market purchases and sales with non-missing prices, yielding \textbf{1,716,763 transactions}. We link firms to CRSP via CIK$\to$GVKEY$\to$PERMNO, matching 8,601 firms (75.8\%), and resolve 211,920 duplicate firm-month observations from many-to-many CIK-PERMNO links. The final panel contains \textbf{1,110,501 firm-month observations} over January 2010 -- December 2025.
 
-A methodological refinement relative to prior work is that we aggregate insider signals using the SEC \textit{filing date} (\texttt{fdate}) rather than the \textit{transaction date}. Form 4 must be filed within two business days of the transaction, but the trade becomes public information only upon filing. Using filing dates ensures that the signal available at month $t$ reflects only trades whose Form 4 was publicly disclosed by month-end, avoiding any look-ahead bias from transaction timing. Control variables include momentum (compounded return months $t$-12 to $t$-2), trailing 12-month volatility, book-to-market, and gross profitability, all winsorized at the 1st/99th percentiles and forward-filled to monthly frequency.
+A methodological refinement relative to prior work is that we aggregate insider signals using the SEC \textit{filing date} (\texttt{fdate}) rather than the \textit{transaction date}. Form 4 must be filed within two business days of the transaction, but the trade becomes public information only upon filing. Using filing dates ensures that the signal available at month $t$ reflects only trades whose Form 4 was publicly disclosed by month-end, avoiding any look-ahead bias from transaction timing.
+
+At the transaction level, we retain open-market purchases and sales and construct signed trade measures using purchases as positive and sales as negative. We first aggregate transactions to the insider--firm--filing-date level and then to the firm--filing-month level. This aggregation captures both the direction and intensity of insider activity while preserving the public-information timing of the filing. The resulting insider variables include net signed trade value, gross purchase and sale values, gross purchase and sale shares, number of transactions, number of unique insiders, officer and director participation, ownership-scaled trade size, and a coordination dummy equal to one when multiple insiders trade in the same firm-month. We then merge these insider signals to CRSP returns and Compustat fundamentals through the CIK$\to$GVKEY$\to$PERMNO link.
+
+Control variables include momentum, trailing 12-month volatility, book-to-market, gross profitability, and firm size. Momentum is defined as the compounded stock return from months $t$-12 to $t$-2, skipping the most recent month. Volatility is the trailing 12-month standard deviation of monthly returns. Book-to-market is constructed from Compustat book equity and CRSP market equity using standard timing conventions, while firm size is measured as the logarithm of CRSP market equity. Continuous variables are winsorized at the 1st/99th percentiles and accounting variables are forward-filled to monthly frequency.
 
 \begin{table}[h!]
+\centering
+\caption{Variable Construction}
+\label{tab:variables}
+\small
+\begin{tabular}{p{0.24\linewidth}p{0.22\linewidth}p{0.45\linewidth}}
+\toprule
+Variable & Source & Construction \\
+\midrule
+Return ($r_{t+1}$) & CRSP & One-month-ahead stock return used as the dependent variable. \\
+Momentum & CRSP & Compounded return from months $t$-12 to $t$-2. \\
+Volatility & CRSP & Trailing 12-month standard deviation of monthly returns. \\
+Firm Size & CRSP & Log of market equity, where market equity equals absolute price times shares outstanding. \\
+Book-to-Market & Compustat/CRSP & Book equity divided by market equity, aligned using standard accounting-data timing conventions. \\
+Gross Profitability & Compustat & Gross profitability measure forward-filled to monthly frequency. \\
+Net Insider Trading & Form 4 & Signed net trade value, with purchases positive and sales negative. \\
+Gross Buy/Sell Value & Form 4 & Total dollar value of purchases and sales within a firm-month. \\
+Trade Direction & Form 4 & Indicator equal to $+1$ for net buying, $-1$ for net selling, and $0$ for mixed or zero net activity. \\
+Insider Role & Form 4 & Officer and director indicators, including officer-title information when available. \\
+Ownership-Scaled Trade Size & Form 4 & Transaction shares scaled by post-transaction ownership. \\
+Coordination Dummy & Form 4 & Indicator equal to one when at least two distinct insiders trade in the same firm-month. \\
+Routine/Opportunistic Signal & Form 4 & Insider trades classified using the Cohen, Malloy, and Pomorski timing rule and aggregated to the firm-month level. \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\linewidth}
+\vspace{2pt}
+\small\textit{Notes:} Insider variables are aggregated using SEC filing dates rather than transaction dates to ensure that all signals are publicly observable before portfolio formation or return prediction.
+\end{minipage}
+\end{table}
+
+\begin{table}[H]
 \centering
 \caption{Summary Statistics}
 \label{tab:summary}
@@ -278,6 +312,7 @@ This paper studies the predictability of insider trades using panel regressions,
 
 Several limitations should be noted. All portfolio returns are reported gross of transaction costs, which could materially reduce net performance. The RL test period covers only 2020--2024 and includes unusual market conditions. Future work could exploit post-2023 Form 4 plan indicators to separately identify Rule 10b5-1 plan trades, apply Fama-French decomposition to RL returns over a longer sample, and incorporate value-weighted portfolio construction.
 
+
 %------------------------------------------------------------------
 \appendix
 \section*{Appendix: Reinforcement Learning Design Details}
@@ -312,3 +347,5 @@ Schulman et al.\ (2017). Proximal policy optimization algorithms. \textit{arXiv:
 \noindent Seyhun (1986). Insiders' profits. \textit{JFE}, 16(2), 189--212.
 
 \end{document}
+
+
