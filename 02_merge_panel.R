@@ -22,7 +22,7 @@ if ("yearmon" %in% names(panel)) {
 cat("Aggregating insider trades to firm-month...\n")
 
 insider_agg <- insider %>%
-  mutate(yearmon = format(as.Date(transactiondate), "%Y-%m")) %>%
+  mutate(yearmon = format(as.Date(fdate), "%Y-%m")) %>%
   group_by(issuercik, yearmon) %>%
   summarise(
     n_routine         = sum(is_routine,      na.rm = TRUE),
