@@ -40,9 +40,11 @@
 \fancyhead[C]{MIT Sloan School of Management --- 15.458 Financial Data Science and Computing}
 \fancyfoot[C]{\thepage}
 
-\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrulewidth}{0.4 pt}
 
 \title{\textbf{Decoding Insider Trading Signals}\\
+\bigskip 
+
 \large \textbf{Routine vs.\ Opportunistic Trades, Machine Learning, and Return Predictability}}
 \author{Shabbir Houssenaly \and Camilo Sanchez Quinto \and Brandon Li \and Niccol\`o Nordera}
 
@@ -203,7 +205,14 @@ Within R$^2$       & 0.0041    & 0.0039    & 0.0041    \\
 \end{minipage}
 \end{table}
 
-\paragraph{Key findings.} Opportunistic buying predicts 0.35\% higher next-month returns ($p<0.001$), or $\sim$4.2\% annualized, using strictly public information (filing dates). Routine trades remain significantly positive (0.0044, $p<0.001$). A binary opportunistic indicator is negative ($-$0.0021), confirming that direction --- not occurrence --- drives predictability. In Model 3, the direct opportunistic effect vanishes while the interaction with volatility is 0.0203 ($p<0.001$): all predictive content is concentrated in high-uncertainty environments. Comparing to transaction-date results, the slight attenuation confirms that a small portion of the raw signal reflects information not yet public at month-end --- a reassuring robustness check.
+\paragraph{Key findings.} Opportunistic buying predicts 0.43\% higher next-month returns ($p<0.001$), or $\sim$5.2\% annualized. 
+The positive coefficient on routine trades is unexpected under the strictest interpretation
+of the routine-trading hypothesis. One possibility is that our year-by-year classification
+identifies a subset of persistent insiders whose trades still contain information. Another
+possibility is that the directional routine signal captures residual firm characteristics or
+unmodeled trade-size/role effects. We therefore interpret the opportunistic/routine contrast
+with caution.
+A binary opportunistic indicator is negative ($-$0.0013), confirming that \textit{direction}, not occurrence,  drives predictability. In Model 3, the direct opportunistic effect vanishes while the interaction with volatility is 0.0296 ($p<0.001$): the predictive content of opportunistic trades is substantially stronger in high-volatility environments, consistent with insiders having greater informational advantage when public information is sparse. 
 
 %------------------------------------------------------------------
 \section{Machine Learning, Portfolio Performance, and Alpha}
