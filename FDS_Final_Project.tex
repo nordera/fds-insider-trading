@@ -46,21 +46,21 @@
 \bigskip 
 
 \large \textbf{Routine vs.\ Opportunistic Trades, Machine Learning, and Return Predictability}}
-\author{Shabbir Houssenaly \and Camilo Sanchez Quinto \and Brandon Li \and Niccol\`o Nordera}
+\author{Shabbir Houssenaly \and Camilo Sanchez Quinto \and Brandon Li \and Niccol\`o Nordera}\author{Shabbir Houssenaly\thanks{We gratefully acknowledge Professor Paul F. Mende for his guidance. We also give Professor Mende permission to share this work with his students.} \and Camilo Sanchez Quinto\footnotemark[1] \and Brandon Li\footnotemark[1] \and Niccol\`o Nordera\footnotemark[1]}
 
 \begin{document}
 \maketitle
 
 %------------------------------------------------------------------
 \begin{abstract}
-\noindent We study whether insider trades predict future stock returns using 1,716,763 SEC Form 4 transactions across 8,601 U.S. firms from 2010 to 2025. We classify each trade as routine or opportunistic following Cohen, Malloy, and Pomorski (2012), applying the criterion year-by-year rather than permanently. Insider signals are aggregated using SEC filing dates rather than transaction dates, ensuring that only publicly available information enters the analysis. Panel regressions show that opportunistic insider buying predicts next-month returns of 0.35\% ($p < 0.001$), with all predictive content concentrated in high-volatility environments. A gradient boosting model (XGBoost) trained on an expanding window generates 735,365 out-of-sample predictions; a long-short portfolio earns 34.99\% annualized (Sharpe 1.60), growing \$1 to \$12.86, with a Fama-French five-factor alpha of 2.78\% per month ($t = 3.91$). A Proximal Policy Optimization (PPO) reinforcement learning agent that directly optimizes the Sharpe ratio with explicit transaction cost penalties earns 74.18\% annualized over 2020--2024 (Sharpe 0.91). Feature importance reveals that market and fundamental variables drive ML predictability, while the RL agent's higher raw returns reflect its ability to take concentrated positions in high-conviction months.
+\noindent We study whether insider trades predict future stock returns using 1,716,763 SEC Form 4 transactions across 8,601 U.S. firms from 2010 to 2025. We classify each trade as routine or opportunistic following Cohen, Malloy, and Pomorski (2012), applying the criterion year-by-year rather than permanently. Insider signals are aggregated using SEC filing dates rather than transaction dates, ensuring that only publicly available information enters the analysis. Panel regressions show that opportunistic insider buying predicts next-month returns of 0.35\% ($p < 0.001$), with all predictive content concentrated in high-volatility environments. A gradient boosting model (XGBoost) trained on an expanding window generates 735,365 out-of-sample predictions; a long-short portfolio earns 34.99\% annualized (Sharpe 1.60), growing \$1 to \$12.86, with a Fama-French five-factor alpha of 2.78\% per month ($t = 3.91$). A Proximal Policy Optimization (PPO) reinforcement learning agent that directly optimizes the Sharpe ratio with explicit transaction cost penalties earns 74.18\% annualized over 2020--2024 (Sharpe 0.91). Refining the ML pipeline using cross-sectional rank standardization combined with firm-size scaling of insider volumes reveals that the apparent dominance of market variables in feature importance is largely an artifact of scale heterogeneity. After standardization, insider features account for approximately 72\% of total model gain (versus less than 2\% in the unstandardized baseline) and the standardized price feature contributes only 4\%, while the decile long-short portfolio earns 31.71\% annualized (Sharpe 1.52, \$1 $\to$ \$10.66). The RL agent's higher raw returns reflect its ability to take concentrated positions in high-conviction months.
 \end{abstract}
 
 %------------------------------------------------------------------
 \section{Introduction}
 %------------------------------------------------------------------
 
-Corporate insiders possess private information not yet reflected in prices. When they trade in their own firm's securities, they implicitly signal their private assessment of firm value. However, not all insider trades are equally informative: many reflect liquidity needs, diversification, or pre-scheduled Rule 10b5-1 plans. Cohen, Malloy, and Pomorski (2012) distinguish \textit{routine} trades --- those occurring in the same calendar month for at least three consecutive years --- from \textit{opportunistic} trades that deviate from any established pattern, showing that only opportunistic trades predict future returns.
+Corporate insiders possess private information not yet reflected in prices. When they trade in their own firm's securities, they implicitly signal their private assessment of firm value. However, not all insider trades are equally informative: many reflect liquidity needs, diversification, or pre-scheduled Rule 10b5-1 plans. Cohen, Malloy, and Pomorski (2012) distinguish \textit{routine} trades, i.e. those occurring in the same calendar month for at least three consecutive years,  from \textit{opportunistic} trades that deviate from any established pattern, showing that only opportunistic trades predict future returns.
 
 We extend this framework in four directions. First, we apply the routine criterion year-by-year rather than permanently, reducing routine trades from $\sim$55\% to 27\%. Second, we aggregate insider signals using SEC filing dates rather than transaction dates, ensuring strict informational correctness: the signal in month $t$ reflects only trades whose Form 4 was publicly filed by month-end. Third, we train XGBoost on an expanding window and construct long-short portfolios with large out-of-sample alpha confirmed by Fama-French five-factor regressions. Fourth, and distinctively, we apply a PPO reinforcement learning agent that directly optimizes the portfolio Sharpe ratio with explicit transaction cost penalties.
 
@@ -68,13 +68,13 @@ We extend this framework in four directions. First, we apply the routine criteri
 \section{Data}
 %------------------------------------------------------------------
 
-We combine SEC Form 4 insider transactions (WRDS), monthly CRSP stock returns, and quarterly Compustat fundamentals into a firm-month panel. Starting from 1,742,812 transactions (2010--2025), we retain Form 4 open-market purchases and sales with non-missing prices, yielding \textbf{1,716,763 transactions}. We link firms to CRSP via CIK$\to$GVKEY$\to$PERMNO, matching 8,601 firms (75.8\%), and resolve 211,920 duplicate firm-month observations from many-to-many CIK-PERMNO links. The final panel contains \textbf{1,110,501 firm-month observations} over January 2010 -- December 2025.
+We combine SEC Form 4 insider transactions (WRDS), monthly CRSP stock returns, and quarterly Compustat fundamentals into a firm-month panel. Starting from 1,742,812 transactions (2010--2025), we retain Form 4 open-market purchases and sales with non-missing prices, yielding 1,716,763 transactions. We link firms to CRSP via CIK$\to$GVKEY$\to$PERMNO, matching 8,601 firms (75.8\%), and resolve 211,920 duplicate firm-month observations from many-to-many CIK-PERMNO links. The final panel contains 1,110,501 firm-month observations over January 2010 -- December 2025.
 
-A methodological refinement relative to prior work is that we aggregate insider signals using the SEC \textit{filing date} (\texttt{fdate}) rather than the \textit{transaction date}. Form 4 must be filed within two business days of the transaction, but the trade becomes public information only upon filing. Using filing dates ensures that the signal available at month $t$ reflects only trades whose Form 4 was publicly disclosed by month-end, avoiding any look-ahead bias from transaction timing.
+A methodological refinement relative to prior work is that we aggregate insider signals using the SEC \textit{filing date} (\texttt{fdate}) rather than the \textit{transaction date}. Form 4 must be filed within two business days of the transaction, but the trade becomes public information only upon filing. Using filing dates ensures that the signal available at month $t$ reflects only trades whose Form 4 was publicly disclosed by month-end, avoiding any look-ahead bias from transaction timing. The Table \ref{tab:variables} summarizes our data collection and variable construction.
 
 At the transaction level, we retain open-market purchases and sales and construct signed trade measures using purchases as positive and sales as negative. We first aggregate transactions to the insider--firm--filing-date level and then to the firm--filing-month level. This aggregation captures both the direction and intensity of insider activity while preserving the public-information timing of the filing. The resulting insider variables include net signed trade value, gross purchase and sale values, gross purchase and sale shares, number of transactions, number of unique insiders, officer and director participation, ownership-scaled trade size, and a coordination dummy equal to one when multiple insiders trade in the same firm-month. We then merge these insider signals to CRSP returns and Compustat fundamentals through the CIK$\to$GVKEY$\to$PERMNO link.
 
-Control variables include momentum, trailing 12-month volatility, book-to-market, gross profitability, and firm size. Momentum is defined as the compounded stock return from months $t$-12 to $t$-2, skipping the most recent month. Volatility is the trailing 12-month standard deviation of monthly returns. Book-to-market is constructed from Compustat book equity and CRSP market equity using standard timing conventions, while firm size is measured as the logarithm of CRSP market equity. Continuous variables are winsorized at the 1st/99th percentiles and accounting variables are forward-filled to monthly frequency.
+Control variables include momentum, trailing 12-month volatility, book-to-market, gross profitability, and firm size. Momentum is defined as the compounded stock return from months $t$-12 to $t$-2, skipping the most recent month. Volatility is the trailing 12-month standard deviation of monthly returns. Book-to-market is constructed from Compustat book equity and CRSP market equity using standard timing conventions, while firm size is measured as the logarithm of CRSP market equity. Continuous variables are winsorized at the 1st/99th percentiles and accounting variables are forward-filled to monthly frequency. After processing the inputs we were left with the final database. Table \ref{tab:summary} shows the summary statistics of the main variables.
 
 \begin{table}[h!]
 \centering
@@ -134,7 +134,7 @@ Signal\_Routine       & 1,110,501 & 0.056 & 0.247 & 0        & 0     \\
 \section{Classification}
 %------------------------------------------------------------------
 
-Following Cohen et al.\ (2012), a trade in year $t$ is classified as \textit{routine} if the insider traded in the same calendar month in each of the two preceding years. All other trades are \textit{opportunistic}. Our year-by-year implementation ensures that once an insider breaks a consecutive streak, subsequent trades immediately revert to opportunistic --- a stricter application that reduces the routine share to 27\% (vs.\ $\sim$55\% in a permanent-label implementation). Directional signals $\text{Signal}_{i,t} \in \{-1, 0, +1\}$ capture net buying direction at the firm-month level, winsorized at the 1st/99th percentiles.
+Following Cohen et al.\ (2012), a trade in year $t$ is classified as \textit{routine} if the insider traded in the same calendar month in each of the two preceding years. All other trades are \textit{opportunistic}. Our year-by-year implementation ensures that once an insider breaks a consecutive streak, subsequent trades immediately revert to opportunistic --- a stricter application that reduces the routine share to 27\% (vs.\ $\sim$55\% in a permanent-label implementation). Directional signals $\text{Signal}_{i,t} \in \{-1, 0, +1\}$ capture net buying direction at the firm-month level, winsorized at the 1st/99th percentiles (Table \ref{tab:classification}).
 
 \begin{table}[h!]
 \centering
@@ -160,7 +160,7 @@ Total         & 1,716,763 & 100\%  \\
 \section{Panel Regression Results}
 %------------------------------------------------------------------
 
-We estimate three panel regressions with \texttt{feols} (R \texttt{fixest}), using firm and time fixed effects and firm-clustered standard errors on 600,699 firm-month observations. The dependent variable is $R_{i,t+1}$.
+We estimate three panel regressions with \texttt{feols} (R \texttt{fixest}), using firm and time fixed effects and firm-clustered standard errors on 600,699 firm-month observations. The Ljung-Box test (lag 12) on firm-level residuals finds that 9.6\% of 6,269 firms reject white noise at 5\%, marginally above the 5\% false-positive rate, confirming that firm-clustered standard errors are adequate. The dependent variable for the three models is the next-month return $R_{i,t+1}$:
 
 \vspace{4pt}
 \noindent\textbf{Model 1} (baseline): $R_{i,t+1} = \alpha_i + \gamma_t + \beta_1 \text{SigOpp}_{i,t} + \beta_2 \text{SigRou}_{i,t} + \delta' X_{i,t} + \varepsilon_{i,t}$
@@ -169,8 +169,6 @@ We estimate three panel regressions with \texttt{feols} (R \texttt{fixest}), usi
 
 \noindent\textbf{Model 3} (interaction): adds $\beta_3(\text{SigOpp}_{i,t} \times \text{Vol}_{i,t})$ to Model 1.
 
-\vspace{4pt}
-\noindent A Ljung-Box test (lag 12) on firm-level residuals finds that 9.6\% of 6,269 firms reject white noise at 5\%, marginally above the 5\% false-positive rate. Firm-clustered standard errors are adequate.
 
 \begin{table}[h!]
 \centering
@@ -205,7 +203,9 @@ Within R$^2$       & 0.0041    & 0.0039    & 0.0041    \\
 \end{minipage}
 \end{table}
 
-\paragraph{Key findings.} Opportunistic buying predicts 0.43\% higher next-month returns ($p<0.001$), or $\sim$5.2\% annualized. 
+\vspace{4pt}
+
+Opportunistic buying predicts 0.35\% higher next-month returns ($p<0.001$), or $\sim$5.2\% annualized (Table \ref{tab:regressions}). 
 The positive coefficient on routine trades is unexpected under the strictest interpretation
 of the routine-trading hypothesis. One possibility is that our year-by-year classification
 identifies a subset of persistent insiders whose trades still contain information. Another
@@ -220,40 +220,123 @@ A binary opportunistic indicator is negative ($-$0.0013), confirming that \texti
 
 \subsection{XGBoost with Expanding Window}
 
-We train a gradient boosting classifier (XGBoost, \texttt{binary:logistic}) to predict whether firm $i$ earns a positive return in month $t+1$:
+We train a gradient boosting classifier (XGBoost, \texttt{binary:logistic}) to predict whether firm $i$ earns a positive return in month $t+1$ (classification task) :
 \[
     y_{i,t+1} = \mathbf{1}\{R_{i,t+1} > 0\}.
 \]
-The model outputs a predicted probability $\hat{p}_{i,t}$ for each firm-month. We estimate the model using an expanding-window design: for each test year $t \in \{2015,\ldots,2024\}$, the model is trained only on data from 2010 through $t-1$ and then used to generate out-of-sample predictions for year $t$. Features include 19 variables spanning insider signals, trade counts and volumes, market variables, and accounting fundamentals. Early stopping with 30 rounds and a 10\% validation holdout limits overfitting, yielding \textbf{735,365 out-of-sample firm-month predictions}.
+The model outputs a predicted probability $\hat{p}_{i,t}$ for each firm-month (whether the return is positive). We estimate the model using an expanding-window design: for each test year $t \in \{2015,\ldots,2024\}$, the model is trained only on data from 2010 through $t-1$ and then used to generate out-of-sample predictions for year $t$. Features include 19 variables spanning insider signals, trade counts and volumes, market variables, and accounting fundamentals. Early stopping with 30 rounds and a 10\% validation holdout limits overfitting, yielding 735,365 out-of-sample firm-month predictions.
 
-We convert predicted probabilities into trading signals by sorting firms by $\hat{p}_{i,t}$ each month. The main XGBoost portfolio goes long firms in the top decile and short firms in the bottom decile. Returns are equal-weighted within each leg and held for one month.
+We convert predicted probabilities into trading signals by sorting firms by $\hat{p}_{i,t}$ each month. The main XGBoost portfolio goes long firms in the top decile and short firms in the bottom decile. Returns are equal-weighted within each leg and held for one month. Figure \ref{fig:importance} shows that stock price (33.1\%) and volatility (25.0\%) dominate predictive gain, with all insider features contributing below 2\% total. This suggests that XGBoost outperforms the linear insider-signal benchmark mainly by capturing nonlinear interactions among market and fundamental predictors, rather than by extracting substantially more information from insider trading alone, consistent with Gu, Kelly, and Xiu (2020).
 
-Figure \ref{fig:importance} shows that stock price (33.1\%) and volatility (25.0\%) dominate predictive gain, with all insider features contributing below 2\% total. XGBoost therefore outperforms the linear insider-signal benchmark mainly by capturing nonlinear interactions among market and fundamental predictors, consistent with Gu, Kelly, and Xiu (2020).
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_importance.pdf}
+\caption{XGBoost feature importance (Gain), model trained on 2010--2023 (including insider information) . Purple = market variables, green = fundamentals, coral = insider signals.}
+\label{fig:importance}
+\end{figure}
+
+To quantify the incremental contribution of insider information, we re-estimate the same expanding-window XGBoost model after removing all insider-trading variables. The controls-only model uses only momentum, volatility, book-to-market, gross profitability, accruals, external financing, price, and shares outstanding. The resulting performance is very close to the full model: the controls-only decile portfolio earns 34.06\% annualized with a Sharpe ratio of 1.56, compared with 34.99\% and 1.60 for the full XGBoost model (Table \ref{tab:xgb_ablation}). The controls-only top/bottom 20\% portfolio earns 24.49\% annualized with a Sharpe ratio of 1.34, compared with 25.27\% and 1.39 for the full model.
+
+This ablation confirms that most of the XGBoost portfolio performance is driven by market and accounting variables. However, insider information still provides a small marginal improvement, particularly in the full decile and top/bottom 20\% portfolio Sharpe ratios. Thus, insider signals are statistically meaningful in the panel regressions, but their incremental economic contribution inside the full-universe nonlinear ML model is modest.
+
+\begin{table}[h!]
+\centering
+\caption{XGBoost Ablation: Full Model vs.\ Controls Only}
+\label{tab:xgb_ablation}
+\small
+\begin{tabular}{lccc}
+\toprule
+Model & Strategy & Ann.\ Return & Sharpe \\
+\midrule
+Full XGBoost & Decile 10--1 & 34.99\% & 1.60 \\
+Controls-only XGBoost & Decile 10--1 & 34.06\% & 1.56 \\
+Full XGBoost & Top/Bot 20\% & 25.27\% & 1.39 \\
+Controls-only XGBoost & Top/Bot 20\% & 24.49\% & 1.34 \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\linewidth}
+\vspace{2pt}
+\small\textit{Notes:} The controls-only model removes all insider-trading variables and uses only market and accounting predictors. Both models use the same expanding-window design and filing-date signal alignment.
+\end{minipage}
+\end{table}
+
+The full-universe ablation shows that insider variables add only modest incremental value to the XGBoost model. One possible explanation is that most firm-months have no insider trading, so the model may learn primarily from market and accounting predictors. To test this, we repeat the ablation exercise on the insider-active subsample, defined as firm-months with at least one insider transaction. This asks whether insider variables improve prediction once we condition on the presence of insider trading.
+
+\begin{table}[h!]
+\centering
+\caption{XGBoost Ablation Within Insider-Active Firm-Months}
+\label{tab:xgb_insider_active}
+\small
+\begin{tabular}{lccc}
+\toprule
+Model & Strategy & Ann.\ Return & Sharpe \\
+\midrule
+Full XGBoost & Decile 10--1 & 20.96\% & 1.03 \\
+Controls-only XGBoost & Decile 10--1 & 21.36\% & 1.07 \\
+Full XGBoost & Top/Bot 20\% & 15.20\% & 0.87 \\
+Controls-only XGBoost & Top/Bot 20\% & 15.50\% & 0.89 \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\linewidth}
+\vspace{2pt}
+\small\textit{Notes:} The sample is restricted to firm-months with insider trading activity. The controls-only model removes all insider-trading variables and keeps only market and accounting predictors. The test period runs from 2015 to 2023:10 because the 2024 insider-active test sample is too small for portfolio formation.
+\end{minipage}
+\end{table}
+
+The insider-active universe remains economically attractive: both XGBoost specifications earn annualized returns above 15\%, and the decile portfolios exceed 20\% annualized (Table \ref{tab:xgb_insider_active}). However, the controls-only model slightly outperforms the full model in both portfolio specifications. This indicates that insider activity is useful as a sample-selection device, identifying a subset of firm-months where return predictability is strong, but the detailed insider variables do not add incremental predictive power once market and accounting predictors are included. Thus, the insider signal is statistically meaningful in the panel regressions, but its economic contribution inside the nonlinear XGBoost ranking model appears limited.
+
+\subsection{Cross-Sectional Standardization and the Reinterpretation of Feature Importance}
+
+The conclusion that insider features contribute negligibly to the XGBoost model rests on a feature-importance measure (Gain) that is sensitive to the representation of the input features. Tree-based learners select splits by searching over candidate threshold values for each feature; features with wider numerical range and finer granularity offer more candidate splits and therefore accumulate gain more readily, independently of their underlying informational content. In our baseline pipeline, the raw price variable \texttt{prc} ranges over several orders of magnitude with thousands of distinct values, while insider count variables such as \texttt{n\_purchases} are concentrated at zero with only a handful of distinct values. Insider volume variables such as \texttt{vol\_purchases} are denominated in raw share counts, which conflate insider conviction with firm size: ten thousand shares purchased at a small-capitalization firm conveys a fundamentally different economic signal than the same quantity at a mega-capitalization firm.
+
+To address these representational artifacts, we re-estimate the expanding-window XGBoost model with two modifications. First, all insider volume features (\texttt{vol\_purchases}, \texttt{vol\_sales}, \texttt{vol\_opportunistic}, \texttt{vol\_routine}, and the corresponding \texttt{net\_*} variables) are scaled by contemporaneous shares outstanding, transforming each into the fraction of float traded by insiders. Second, all features---both insider and control---are cross-sectionally rank-transformed within each year-month, mapping each variable to its percentile rank in $[0,1]$. This eliminates the differential split-point advantage enjoyed by features with wider raw distributions and renders all features comparable across firms and across time. We retain \texttt{prc} in the feature set (rank-standardized as \texttt{prc\_r}) so that the standardized model competes on the same information set as the baseline, with \texttt{shrout} excluded only because it serves as the scaling denominator for the insider volume features. All other elements of the pipeline---hyperparameters, expanding-window structure, training period, and portfolio construction---are held identical to the baseline specification.
+
+A correlation analysis of the standardized feature set (Figure \ref{fig:corr_ranked}) reveals substantial cross-sectional collinearity among the insider variables. Several pairs are mechanically near-perfectly correlated: \texttt{n\_routine} and \texttt{vol\_routine\_scaled} ($\rho = 1.00$), \texttt{signal\_routine} and \texttt{net\_routine\_scaled} ($\rho = 1.00$), \texttt{n\_opportunistic} and \texttt{vol\_opportunistic\_scaled} ($\rho = 0.99$), and \texttt{signal\_opportunistic} and \texttt{net\_opportunistic\_scaled} ($\rho = 1.00$). A broader cluster of insider-buying variables (\texttt{n\_purchases}, \texttt{vol\_purch\_scaled}, \texttt{net\_shares\_scaled}) exhibits pairwise correlations between 0.74 and 0.97, while insider-selling proxies (\texttt{n\_sales}, \texttt{vol\_sales\_scaled}) correlate negatively with these at magnitudes between $-0.61$ and $-0.83$. This collinearity has an important implication for the interpretation of feature importance: when several near-redundant features encode the same underlying signal, a tree-based learner arbitrarily distributes gain among them, mechanically deflating the apparent importance of any single insider variable. The unstandardized baseline aggravates this effect because the ``insider feature block'' is in addition placed on an unfavorable footing relative to wide-range market features. Both issues---collinearity within the insider block and scale heterogeneity across blocks---bias the baseline Gain measure against insider variables in tandem.
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.76\textwidth]{fig_importance.pdf}
-\caption{XGBoost feature importance (Gain), model trained on 2010--2023. Purple = market variables, green = fundamentals, coral = insider signals.}
-\label{fig:importance}
+\includegraphics[width=0.85\textwidth]{fig_corr_ranked.pdf}
+\caption{Pearson correlation of rank-standardized features within the firm-month panel. Red indicates positive correlation, blue negative.}
+\label{fig:corr_ranked}
 \end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_importance_ranked_prc.pdf}
+\caption{XGBoost feature importance (Gain) after cross-sectional rank standardization and scaling of insider volumes by shares outstanding, with \texttt{prc} retained in the feature set as \texttt{prc\_r}. Compare to Figure \ref{fig:importance}. Coral = insider signals, purple = market variables.}
+\label{fig:importance_ranked}
+\end{figure}
+
+Figure \ref{fig:importance_ranked} reports the resulting feature importance. The pattern reverses sharply: the top five features are all insider variables. \texttt{n\_purchases} (15.3\%), \texttt{signal\_routine} (12.8\%), \texttt{n\_routine} (10.6\%), \texttt{signal\_opportunistic} (10.2\%), and \texttt{n\_sales} (9.5\%) together account for 58.4\% of total gain, with \texttt{n\_opportunistic} (6.8\%), \texttt{net\_shares\_scaled} (3.5\%), and \texttt{net\_opp\_scaled} (3.0\%) adding further insider contribution. The standardized price feature \texttt{prc\_r} contributes only 4.0\%---a dramatic reduction from its 33.1\% share in the baseline (Figure \ref{fig:importance})---confirming that the original price dominance was substantially attributable to its wide numerical range rather than to genuine economic content beyond what insider and other standardized features capture. Volatility remains the most important non-insider feature at 8.4\%. Insider-related features in aggregate contribute approximately 72\% of total gain, compared with less than 2\% in the baseline specification.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.76\textwidth]{fig_wealth_ranked_prc.pdf}
+\caption{Cumulative wealth of \$1 invested at strategy inception under the rank-standardized pipeline with \texttt{prc\_r} retained, monthly rebalancing. Compare to Figure \ref{fig:wealth}.}
+\label{fig:wealth_ranked}
+\end{figure}
+
+Portfolio performance is well-preserved under the standardized pipeline. The decile long-short strategy earns 31.71\% annualized (Sharpe 1.52) and grows \$1 to \$10.66 over 2015--2024, compared with 34.99\% (Sharpe 1.60) and \$12.86 in the baseline. The top/bottom 20\% portfolio earns 24.32\% annualized (Sharpe 1.43) and grows \$1 to \$6.35, compared with 25.27\% (Sharpe 1.39) and \$6.69 in the baseline. The standardized pipeline thus sacrifices roughly three percentage points of annualized return at the decile extremes in exchange for a fundamentally cleaner attribution of the alpha to insider information rather than to price-level effects.
+
+We interpret these results as a methodological clarification rather than an overturning of the baseline conclusion. The baseline pipeline accurately identifies that an XGBoost portfolio earns substantial out-of-sample alpha; what it does \emph{not} cleanly identify is the source of that alpha, because Gain-based feature importance is confounded by scale heterogeneity across the feature set. Once the feature representation is standardized, the same expanding-window model attributes most of its predictive content to insider-related variables, with portfolio performance only modestly attenuated. This is consistent with the panel-regression evidence in Section 4 that opportunistic and routine insider activity carry statistically meaningful information about next-month returns, and it suggests that prior conclusions in the empirical literature about the marginal contribution of insider signals in nonlinear ML models may be sensitive to feature preprocessing choices.
 
 \subsection{Reinforcement Learning Portfolio Optimization}
 
 To directly optimize the portfolio Sharpe ratio while accounting for transaction costs, we apply a Proximal Policy Optimization (PPO) reinforcement learning agent (Schulman et al., 2017). Unlike XGBoost, which predicts returns for each stock independently and applies a fixed trading rule, the RL agent learns an adaptive allocation policy across the 10 XGBoost probability deciles.
 
-\paragraph{Environment design.} At each month $t$, the agent observes a state vector of 21 dimensions: the mean XGBoost probability and mean opportunistic signal for each of the 10 deciles (20 features), plus the previous month's portfolio return. The action space is continuous: the agent outputs a weight $w_k \in [-1, +1]$ for each decile $k$.
+\paragraph{Environment design:} At each month $t$, the agent observes a state vector of 21 dimensions: the mean XGBoost probability and mean opportunistic signal for each of the 10 deciles (20 features), plus the previous month's portfolio return. The action space is continuous: the agent outputs a weight $w_k \in [-1, +1]$ for each decile $k$.
 
-\paragraph{Reward function.} The monthly reward is the rolling 12-month Sharpe ratio of portfolio returns, net of transaction costs:
+\paragraph{Reward function:} The monthly reward is the rolling 12-month Sharpe ratio of portfolio returns, net of transaction costs:
 \[
 r_t = \frac{\bar{R}_{t-11:t}}{\sigma_{t-11:t} + \epsilon} - \lambda \sum_{k=1}^{10} |w_{k,t} - w_{k,t-1}|
 \]
 where $\lambda = 0.001$ (10 basis points per unit of turnover) penalizes excessive trading.
 
-\paragraph{Architecture and training.} The policy network is a three-layer MLP (128-128-64 neurons, ReLU activations, Tanh output). We use an expanding window identical to XGBoost: the agent trains from scratch on data from 2015 through $t-1$ before predicting year $t$, for $t \in \{2020, \ldots, 2024\}$. The first test year is 2020, as the agent requires at least 5 years of decile-level training data.
+\paragraph{Architecture and training:} The policy network is a three-layer MLP (128-128-64 neurons, ReLU activations, Tanh output). We use an expanding window identical to XGBoost: the agent trains from scratch on data from 2015 through $t-1$ before predicting year $t$, for $t \in \{2020, \ldots, 2024\}$. The first test year is 2020, as the agent requires at least 5 years of decile-level training data.
 
 \subsection{Portfolio Performance Comparison}
 
-Table \ref{tab:portfolio} reports performance statistics and Figure \ref{fig:wealth} plots cumulative wealth.
+The regression-based strategy underperforms ($-2.55\%$, Sharpe $-0.38$; Table \ref{tab:portfolio}) when using filing dates, illustrating both the gap between in-sample statistical significance and out-of-sample economic value, and the slight attenuation from using strictly public information. XGBoost strategies generate substantially larger returns, with the decile strategy achieving Sharpe 1.60 and growing \$1 to \$12.86 (Figure \ref{fig:wealth}).
 
 \begin{table}[h!]
 \centering
@@ -264,15 +347,17 @@ Table \ref{tab:portfolio} reports performance statistics and Figure \ref{fig:wea
 \toprule
 Strategy & Period & Ann.\ Return & Volatility & Sharpe & Hit Rate & \$1 $\to$ \\
 \midrule
-Regression L/S       & 2015--2024 & $-2.55\%$  & $6.64\%$  & $-0.38$ & $44.3\%$ & \$0.78  \\
-XGBoost Top/Bot 20\% & 2015--2024 & $+25.27\%$ & $18.23\%$ & $+1.39$ & $71.4\%$ & \$6.69  \\
-XGBoost Decile 10-1  & 2015--2024 & $+34.99\%$ & $21.88\%$ & $+1.60$ & $73.9\%$ & \$12.86 \\
-RL PPO (continuous)  & 2020--2024 & $+74.18\%$ & $81.53\%$ & $+0.91$ & $62.7\%$ & \$4.65  \\
+Regression L/S                   & 2015--2024 & $-2.55\%$  & $6.64\%$  & $-0.38$ & $44.3\%$ & \$0.78  \\
+XGBoost Top/Bot 20\% (baseline)  & 2015--2024 & $+25.27\%$ & $18.23\%$ & $+1.39$ & $71.4\%$ & \$6.69  \\
+XGBoost Decile 10-1 (baseline)   & 2015--2024 & $+34.99\%$ & $21.88\%$ & $+1.60$ & $73.9\%$ & \$12.86 \\
+XGBoost Top/Bot 20\% (ranked)    & 2015--2024 & $+24.32\%$ & $17.04\%$ & $+1.43$ & $70.6\%$ & \$6.35  \\
+XGBoost Decile 10-1 (ranked)     & 2015--2024 & $+31.71\%$ & $20.84\%$ & $+1.52$ & $74.8\%$ & \$10.66 \\
+RL PPO (continuous)              & 2020--2024 & $+74.18\%$ & $81.53\%$ & $+0.91$ & $62.7\%$ & \$4.65  \\
 \bottomrule
 \end{tabular}
 \begin{minipage}{\linewidth}
 \vspace{2pt}
-\small\textit{Notes:} Equal-weighted within legs for regression and XGBoost strategies; continuous weights for RL. Monthly rebalancing, gross of transaction costs for regression and XGBoost; net of 10 bps turnover penalty for RL. RL test period starts in 2020 due to training data requirements. All signals aggregated by SEC filing date.
+\small\textit{Notes:} The ``ranked'' variants use cross-sectional rank-standardized features with insider volumes scaled by shares outstanding and \texttt{prc} retained as \texttt{prc\_r}; all other elements match the baseline. Equal-weighted within legs for regression and XGBoost strategies; continuous weights for RL. Monthly rebalancing, gross of transaction costs for regression and XGBoost; net of 10 bps turnover penalty for RL. All signals aggregated by SEC filing date.
 \end{minipage}
 \end{table}
 
@@ -283,13 +368,11 @@ RL PPO (continuous)  & 2020--2024 & $+74.18\%$ & $81.53\%$ & $+0.91$ & $62.7\%$ 
 \label{fig:wealth}
 \end{figure}
 
-The regression-based strategy underperforms ($-2.55\%$, Sharpe $-0.38$) when using filing dates, illustrating both the gap between in-sample statistical significance and out-of-sample economic value, and the slight attenuation from using strictly public information. XGBoost strategies generate substantially larger returns, with the decile strategy achieving Sharpe 1.60 and growing \$1 to \$12.86.
-
 The RL agent generates the highest raw return (+74.18\% annualized) but with substantially higher volatility (81.5\%), resulting in a Sharpe ratio of 0.91. Year-by-year, the agent performs strongly in 2021 (Sharpe 2.37) and 2024 (Sharpe 1.98) but is more volatile in other years. On a risk-adjusted basis, XGBoost remains the dominant strategy.
 
 \subsection{Fama-French Five-Factor Alpha}
 
-We regress each strategy's monthly returns on the Fama-French five factors using Newey-West standard errors (lag = 6). Table \ref{tab:ff5} reports results.
+We regress each strategy's monthly returns on the Fama-French five factors using Newey-West standard errors with 6 lags. Results are summarized in Table \ref{tab:ff5}:
 
 \begin{table}[h!]
 \centering
@@ -317,44 +400,88 @@ The regression strategy generates no significant alpha ($-2.77\%$, $p=0.14$). Bo
 \section{Conclusion}
 %------------------------------------------------------------------
 
-This paper studies the predictability of insider trades using panel regressions, gradient boosting, and reinforcement learning. A key methodological contribution is the use of SEC filing dates rather than transaction dates for signal aggregation, ensuring strict informational correctness. Our main findings are: (i) opportunistic insider trades predict next-month returns of 0.35\% using filing-date signals, concentrated entirely in high-volatility environments; (ii) XGBoost generates large out-of-sample alpha (33.32\% per year, FF5-adjusted) robust to the filing-date refinement, by capturing non-linear combinations of market and fundamental variables; (iii) a PPO reinforcement learning agent generates 74.18\% annualized returns (Sharpe 0.91) by directly optimizing the Sharpe ratio with transaction cost penalties, though at substantially higher volatility than XGBoost.
+This paper studies the predictability of insider trades using panel regressions, gradient boosting, and reinforcement learning. A key methodological contribution is the use of SEC filing dates rather than transaction dates for signal aggregation, ensuring strict informational correctness. Our main findings are: (i) opportunistic insider trades predict next-month returns of 0.35\% using filing-date signals, concentrated entirely in high-volatility environments; (ii) XGBoost generates large out-of-sample alpha (33.32\% per year, FF5-adjusted) robust to the filing-date refinement; (iii) cross-sectional rank standardization of features, combined with firm-size scaling of insider volumes, reveals that insider-related variables account for approximately 71\% of XGBoost feature importance (reversing the unstandardized baseline conclusion) while preserving portfolio Sharpe ratios above 1.4. This indicates that the source of the XGBoost alpha is substantially attributable to insider information, and that Gain-based feature importance in tree models is sensitive to feature preprocessing in ways that can materially mislead economic interpretation; (iv) a PPO reinforcement learning agent generates 74.18\% annualized returns (Sharpe 0.91) by directly optimizing the Sharpe ratio with transaction cost penalties, though at substantially higher volatility than XGBoost.
 
 Several limitations should be noted. All portfolio returns are reported gross of transaction costs, which could materially reduce net performance. The RL test period covers only 2020--2024 and includes unusual market conditions. Future work could exploit post-2023 Form 4 plan indicators to separately identify Rule 10b5-1 plan trades, apply Fama-French decomposition to RL returns over a longer sample, and incorporate value-weighted portfolio construction.
 
+\section*{AI Disclosure}
+\small
+The authors used AI assistants (Claude, ChatGPT) for limited support during this project, including code debugging, exposition refinement, and methodological discussion. 
 
+%------------------------------------------------------------------
+\section{References}
+%------------------------------------------------------------------
+\small
+
+\begin{list}{}{\setlength{\leftmargin}{0.25in}
+               \setlength{\itemindent}{-0.25in}
+               \setlength{\itemsep}{0.5em}}
+
+\item Chen, T., \& Guestrin, C. (2016). XGBoost: A scalable tree boosting system. \textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining}, 785--794.
+
+\item Cohen, L., Malloy, C., \& Pomorski, L. (2012). Decoding inside information. \textit{Journal of Finance}, 67(3), 1009--1043.
+
+\item Fama, E. F., \& French, K. R. (1993). Common risk factors in the returns on stocks and bonds. \textit{Journal of Financial Economics}, 33(1), 3--56.
+
+\item Fama, E. F., \& French, K. R. (2015). A five-factor asset pricing model. \textit{Journal of Financial Economics}, 116(1), 1--22.
+
+\item Freyberger, J., Neuhierl, A., \& Weber, M. (2020). Dissecting characteristics nonparametrically. \textit{Review of Financial Studies}, 33(5), 2326--2377.
+
+\item Gu, S., Kelly, B., \& Xiu, D. (2020). Empirical asset pricing via machine learning. \textit{Review of Financial Studies}, 33(5), 2223--2273.
+
+\item Jaffe, J. F. (1974). Special information and insider trading. \textit{Journal of Business}, 47(3), 410--428.
+
+\item Schulman, J., Wolski, F., Dhariwal, P., Radford, A., \& Klimov, O. (2017). Proximal policy optimization algorithms. \textit{arXiv preprint arXiv:1707.06347}.
+
+\item Seyhun, H. N. (1986). Insiders' profits, costs of trading, and market efficiency. \textit{Journal of Financial Economics}, 16(2), 189--212.
+
+\end{list}
+
+\newpage
 %------------------------------------------------------------------
 \appendix
-\section*{Appendix: Reinforcement Learning Design Details}
+\section*{Appendix}
 %------------------------------------------------------------------
+\subsection*{1) Reinforcement Learning Design Details}
+\paragraph{State space:} The 21-dimensional state vector at time $t$ consists of: (1) mean XGBoost predicted probability for each of the 10 deciles (10 features); (2) mean \texttt{signal\_opportunistic} for each decile (10 features); (3) the previous month's portfolio return (1 feature).
 
-\paragraph{State space.} The 21-dimensional state vector at time $t$ consists of: (1) mean XGBoost predicted probability for each of the 10 deciles (10 features); (2) mean \texttt{signal\_opportunistic} for each decile (10 features); (3) the previous month's portfolio return (1 feature).
+\paragraph{Action normalization:} Raw actions from the policy network $a \in [-1,+1]^{10}$ are normalized so the maximum absolute weight equals 1.
 
-\paragraph{Action normalization.} Raw actions from the policy network $a \in [-1,+1]^{10}$ are normalized so the maximum absolute weight equals 1.
+\paragraph{Hyperparameters:} Learning rate $3 \times 10^{-4}$; $n$-steps 512; batch size 64; 10 epochs per update; GAE lambda 0.95; clip range 0.2; entropy coefficient 0.01. Policy network: MLP with layers [128, 128, 64], ReLU activations, Tanh output layer.
 
-\paragraph{Hyperparameters.} Learning rate $3 \times 10^{-4}$; $n$-steps 512; batch size 64; 10 epochs per update; GAE lambda 0.95; clip range 0.2; entropy coefficient 0.01. Policy network: MLP with layers [128, 128, 64], ReLU activations, Tanh output layer.
-
-\paragraph{Expanding window.} For test year $t$, the agent trains on monthly decile data from 2015 through $t-1$. The first test year is 2020 (60 training months, 30,000 training steps). Training steps scale with the training window size ($500 \times$ number of training months).
+\paragraph{Expanding window:} For test year $t$, the agent trains on monthly decile data from 2015 through $t-1$. The first test year is 2020 (60 training months, 30,000 training steps). Training steps scale with the training window size ($500 \times$ number of training months).
 
 \paragraph{Transaction cost model.} The turnover penalty $\lambda \sum_k |w_{k,t} - w_{k,t-1}|$ with $\lambda = 0.001$ approximates 10 basis points per unit of portfolio weight changed.
 
+
+
+
+\subsection*{2) RL performance plot}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.80\textwidth]{fig_wealth_RL.pdf}
+\caption{Cumulative wealth of \$1 invested in January 2020 across the common 2020--2024 evaluation window. All strategies are rebased to a common starting value. Regression and XGBoost portfolios are gross of transaction costs; RL PPO includes a 10 bps turnover penalty.}
+\label{fig:wealth_rl}
+\end{figure}
+
+Figure \ref{fig:wealth_rl} compares the two XGBoost portfolios, the regression long-short benchmark, and the RL PPO strategy over the common 2020--2024 evaluation window, with all strategies rebased to \$1 in January 2020. This common-period comparison is necessary because the RL agent is only evaluated starting in 2020, while the XGBoost and regression strategies begin in 2015. The figure shows that the RL strategy generates positive cumulative returns over the period, but with substantially more volatility and deeper interim drawdowns than the XGBoost portfolios. By contrast, the XGBoost decile and top/bottom 20\% portfolios compound more smoothly and finish above the RL strategy over the shared window. This reinforces the conclusion from Table \ref{tab:portfolio}: PPO can take concentrated high-return positions, but XGBoost remains more attractive on a risk-adjusted basis.
+
+
 %------------------------------------------------------------------
-\section*{References}
+\section*{Link to Sources}
 %------------------------------------------------------------------
 \small
-\noindent Chen \& Guestrin (2016). XGBoost. \textit{KDD}, 785--794. \quad
-Cohen, Malloy \& Pomorski (2012). Decoding inside information. \textit{JF}, 67(3), 1009--1043.
+\noindent The main project outputs are available in the following Google Drive repository:
+\[
+\texttt{https://drive.google.com/drive/folders/1foPfnsvot6cp1AGQqGC25l-JYL3yt2Nx}
+\]
 
-\noindent Fama \& French (1993). Common risk factors. \textit{JFE}, 33(1), 3--56. \quad
-Fama \& French (2015). A five-factor asset pricing model. \textit{JFE}, 116(1), 1--22.
+\noindent The project code is available in the following GitHub repository:
+\[
+\texttt{https://github.com/nordera/fds-insider-trading}
+\]
 
-\noindent Freyberger, Neuhierl \& Weber (2020). Dissecting characteristics. \textit{RFS}, 33(5), 2326--2377. \quad
-Gu, Kelly \& Xiu (2020). Empirical asset pricing via ML. \textit{RFS}, 33(5), 2223--2273.
 
-\noindent Jaffe (1974). Special information and insider trading. \textit{JB}, 47(3), 410--428. \quad
-Schulman et al.\ (2017). Proximal policy optimization algorithms. \textit{arXiv:1707.06347}.
 
-\noindent Seyhun (1986). Insiders' profits. \textit{JFE}, 16(2), 189--212.
 
 \end{document}
-
-
